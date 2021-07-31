@@ -28,7 +28,7 @@ export const TILE_SIZE = 32;
 // Player (circle)
 export const PLAYER_SIZE = 32;
 export const PLAYER_SPEED = 3;
-export const PLAYER_MAX_LIVES = 3;
+export const PLAYER_MAX_LIVES = 5;
 export const PLAYER_WEAPON_SIZE = 12; // The bigger, the further away a bullet will be shot from.
 export const PLAYER_HEARING_DISTANCE = 256;
 

@@ -21,6 +21,9 @@ import { Helmet } from 'react-helmet';
 import { RoomAvailable } from 'colyseus.js/lib/Room';
 import qs from 'querystringify';
 import { useAnalytics } from '../hooks';
+import { tokenABI, token_addr, game_addr } from '../abi';
+
+import { ethers } from 'ethers';
 
 const MapsList: IListItem[] = Constants.MAPS_NAMES.map((value) => ({
     value,
@@ -41,6 +44,10 @@ interface IProps extends RouteComponentProps {}
 
 interface IState {
     playerName: string;
+    hasWalletEnabled: boolean;
+    address: string;
+    balance: string;
+    hasApproved: boolean;
     hasNameChanged: boolean;
     isNewRoom: boolean;
     roomName: string;
@@ -59,6 +66,10 @@ export default class Home extends Component<IProps, IState> {
 
         this.state = {
             playerName: localStorage.getItem('playerName') || '',
+            address: '',
+            balance: '0',
+            hasWalletEnabled: false,
+            hasApproved: false,
             hasNameChanged: false,
             isNewRoom: false,
             roomName: localStorage.getItem('roomName') || '',
@@ -71,11 +82,32 @@ export default class Home extends Component<IProps, IState> {
     }
 
     // BASE
-    componentDidMount() {
+    componentDidMount = async() => {
         try {
             const host = window.document.location.host.replace(/:.*/, '');
             const port = process.env.NODE_ENV !== 'production' ? Constants.WS_PORT : window.location.port;
             const url = `${window.location.protocol.replace('http', 'ws')}//${host}${port ? `:${port}` : ''}`;
+
+            // get metamask address
+            if ((window as any).ethereum) {
+                await (window as any).ethereum.enable();
+                const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+                const chainId = await (await provider.getNetwork()).chainId
+                if (chainId == 69) {
+                    const signer = provider.getSigner();
+                    const token = new ethers.Contract(token_addr, tokenABI).connect(signer);
+                    const address = await signer.getAddress()
+                    const balance = (await token.balanceOf(address)) / Math.pow(10, 18)
+                    const allowance = await token.allowance(address, game_addr)
+                    const hasApproved = allowance > Math.pow(10, 20)
+                    this.setState( {
+                        address: address,
+                        balance: balance.toString(),
+                        hasWalletEnabled: true,
+                        hasApproved: hasApproved
+                    });
+                }
+            }
 
             this.client = new Client(url);
             this.setState(
@@ -159,6 +191,18 @@ export default class Home extends Component<IProps, IState> {
         });
     };
 
+    handleApproveClick = async () => {
+        const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+        const signer = provider.getSigner();
+        const token = new ethers.Contract(token_addr, tokenABI).connect(signer);
+        const address = await signer.getAddress()
+        await token.increaseAllowance(game_addr, '1000000000000000000000')
+        await token.mint(address, '100000000000000000000')
+        this.setState({
+            hasApproved: true
+        })
+    }
+
     // METHODS
     updateRooms = async () => {
         if (!this.client) {
@@ -207,16 +251,52 @@ export default class Home extends Component<IProps, IState> {
                     </Text>
                     <Space size="xxs" />
                 </View>
-
+                <Space size="m" />
+                {this.state.hasWalletEnabled && this.renderAddress()}
                 <Space size="m" />
                 {this.renderName()}
                 <Space size="m" />
-                {this.renderRoom()}
+                {this.state.hasApproved && this.renderRoom()}
                 <Space size="m" />
                 <GitHub />
             </View>
         );
     }
+
+    renderAddress = () => {
+        return (
+            <Box
+                style={{
+                    width: 500,
+                    maxWidth: '100%',
+                }}
+            >
+                <View flex>
+                    <Inline size="thin" />
+                    <Text>Address:</Text>
+                </View>
+                <Space size="xs" />
+                <View flex>
+                    <Inline size="thin" />
+                    <Text style={{fontSize:'12px'}}>{this.state.address}</Text>
+                </View>
+                <Space size="xs" />
+                <View flex>
+                    <Inline size="thin" />
+                    <Text>Balance: {this.state.balance} USDC</Text>
+                </View>
+                {!this.state.hasApproved && (
+                    <>
+                        <Space size="xs" />
+                        <View>
+                            <Button title="Approve" text="Approve" onClick={this.handleApproveClick} />
+                        </View>
+                    </>
+                )}
+                
+            </Box>
+        );
+    };
 
     renderName = () => {
         return (

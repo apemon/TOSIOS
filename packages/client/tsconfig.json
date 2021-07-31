@@ -5,7 +5,7 @@
         "lib": ["dom", "dom.iterable", "es5"],
         "allowSyntheticDefaultImports": true,
         "experimentalDecorators": true,
-        "strict": true,
+        "strict": false,
         "moduleResolution": "node",
         "allowJs": true,
         "sourceMap": false,
