@@ -169,7 +169,7 @@ export default class Home extends Component<IProps, IState> {
     };
 
     handleCreateRoomClick = () => {
-        const { playerName, roomName, roomMap, roomMaxPlayers, mode } = this.state;
+        const { playerName, roomName, roomMap, roomMaxPlayers, mode, address } = this.state;
         const analytics = useAnalytics();
 
         const options: Types.IRoomOptions = {
@@ -178,13 +178,14 @@ export default class Home extends Component<IProps, IState> {
             roomMap,
             roomMaxPlayers,
             mode,
+            address
         };
 
         analytics.track({ category: 'Game', action: 'Create' });
 
         navigate(`/new${qs.stringify(options, true)}`);
     };
-
+d
     handleCancelRoomClick = () => {
         this.setState({
             isNewRoom: false,

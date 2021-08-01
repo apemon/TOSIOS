@@ -30,6 +30,12 @@ export class Player extends Circle {
     @type('number')
     public ack: number;
 
+    @type('string')
+    public address: string;
+
+    @type('string')
+    public balance: string;
+
     // This property is needed to limit shooting rate
     public lastShootAt: number;
 
@@ -42,7 +48,8 @@ export class Player extends Circle {
         lives: number,
         maxLives: number,
         name: string,
-        team?: Types.Teams,
+        address: string,
+        team?: Types.Teams
     ) {
         super(x, y, radius);
         this.playerId = playerId;
@@ -54,6 +61,7 @@ export class Player extends Circle {
         this.kills = 0;
         this.rotation = 0;
         this.lastShootAt = undefined;
+        this.address = address;
     }
 
     // Methods

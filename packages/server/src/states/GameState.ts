@@ -1,6 +1,8 @@
 import { ArraySchema, MapSchema, Schema, type } from '@colyseus/schema';
 import { Bullet, Game, Monster, Player, Prop } from '../entities';
 import { Collisions, Constants, Entities, Geometry, Maps, Maths, Models, Tiled, Types } from '@tosios/common';
+import axios from 'axios'
+import { Room } from 'colyseus';
 
 export class GameState extends Schema {
     @type(Game)
@@ -142,8 +144,13 @@ export class GameState extends Schema {
     };
 
     private handleGameEnd = (message?: Models.MessageJSON) => {
+        console.log(message)
         if (message) {
             this.onMessage(message);
+        }
+
+        if(message.type == 'won') {
+            this.updateSurvivor(message.params.address, this.game.roomName)
         }
 
         this.propsClear();
@@ -191,7 +198,7 @@ export class GameState extends Schema {
     //
     // Players: single
     //
-    playerAdd(id: string, name: string) {
+    playerAdd(id: string, name: string, address?:string) {
         const spawner = this.getSpawnerRandomly();
         const player = new Player(
             id,
@@ -201,6 +208,7 @@ export class GameState extends Schema {
             0,
             Constants.PLAYER_MAX_LIVES,
             name || id,
+            address
         );
 
         // Add the user to the "red" team by default
@@ -317,13 +325,23 @@ export class GameState extends Schema {
         }
     }
 
-    private playerUpdateKills(playerId: string) {
-        const player = this.players.get(playerId);
-        if (!player) {
+    private async playerUpdateKills(killerId: string, killedId: string) {
+        const killer_player = this.players.get(killerId);
+        const killed_player = this.players.get(killedId);
+        if (!killer_player) {
             return;
         }
-
-        player.setKills(player.kills + 1);
+        if (!killed_player) {
+            return;
+        }
+        // update to queue here
+        await axios.post('http://0.0.0.0:8000/pawn', {
+            killer: killer_player.address,
+            victim: killed_player.address,
+            room: this.game.roomName
+        })
+        console.log(`killer: ${killer_player.address}, killed: ${killed_player.address}`)
+        killer_player.setKills(killer_player.kills + 1);
     }
 
     playerRemove(id: string) {
@@ -402,6 +420,13 @@ export class GameState extends Schema {
         return this.spawners[Maths.getRandomInt(0, this.spawners.length - 1)];
     }
 
+    private async updateSurvivor(address: string, room_name:string) {
+        await axios.post('http://0.0.0.0:8000/survive', {
+            survivor: address,
+            room: room_name
+        })
+    }
+
     //
     // Monsters
     //
@@ -470,7 +495,7 @@ export class GameState extends Schema {
     //
     // Bullets
     //
-    private bulletUpdate(bulletId: number) {
+    private async bulletUpdate(bulletId: number) {
         const bullet = this.bullets[bulletId];
         if (!bullet || !bullet.active) {
             return;
@@ -501,7 +526,7 @@ export class GameState extends Schema {
                         killedName: player.name,
                     },
                 });
-                this.playerUpdateKills(bullet.playerId);
+                this.playerUpdateKills(bullet.playerId, player.playerId);
             }
         });
 

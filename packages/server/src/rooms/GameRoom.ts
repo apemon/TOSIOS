@@ -7,6 +7,7 @@ export class GameRoom extends Room<GameState> {
     // Lifecycle
     //
     onCreate(options: Types.IRoomOptions) {
+        console.log(options)
         // Set max number of clients for this room
         this.maxClients = Maths.clamp(
             options.roomMaxPlayers || 0,
@@ -58,7 +59,8 @@ export class GameRoom extends Room<GameState> {
     }
 
     onJoin(client: Client, options: Types.IPlayerOptions) {
-        this.state.playerAdd(client.sessionId, options.playerName);
+        console.log(options)
+        this.state.playerAdd(client.sessionId, options.playerName, options.address);
 
         console.log(`${new Date().toISOString()} [Join] id=${client.sessionId} player=${options.playerName}`);
     }

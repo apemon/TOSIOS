@@ -9,6 +9,7 @@ import ReactNipple from 'react-nipple';
 import { View } from '../components';
 import { isMobile } from 'react-device-detect';
 import qs from 'querystringify';
+import { ethers } from 'ethers';
 
 interface IProps extends RouteComponentProps {
     roomId?: string;
@@ -69,17 +70,31 @@ export default class Match extends Component<IProps, IState> {
 
         const isNewRoom = roomId === 'new';
         const parsedSearch = qs.parse(search) as Types.IRoomOptions;
+        
+        // get metamask address
+        let address = ''
+        if ((window as any).ethereum) {
+            await (window as any).ethereum.enable();
+            const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+            const chainId = await (await provider.getNetwork()).chainId
+            if (chainId == 69) {
+                const signer = provider.getSigner();
+                address = await signer.getAddress()
+            }
+        }
 
         let options;
         if (isNewRoom) {
             options = {
                 ...parsedSearch,
                 roomMaxPlayers: Number(parsedSearch.roomMaxPlayers),
+                address
             };
         } else {
             // The only thing to pass when joining an existing room is a player's name
             options = {
                 playerName: localStorage.getItem('playerName'),
+                address
             };
         }
 

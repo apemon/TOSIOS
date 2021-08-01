@@ -126,6 +126,7 @@ export class Game extends Schema {
                     ts: Date.now(),
                     params: {
                         name: player.name,
+                        address: player.address
                     },
                 });
                 this.startLobby();
